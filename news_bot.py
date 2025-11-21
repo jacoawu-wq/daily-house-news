@@ -4,9 +4,18 @@ import feedparser
 import datetime
 from urllib.parse import quote
 
-# 1. 設定關鍵字
+# ==========================================
+# 設定區 (Settings)
+# ==========================================
+# 1. LINE Notify 的網址 (我把它拉出來，避免複製錯誤)
+LINE_API = "https://notify-api.line.me/api/notify"
+
+# 2. 搜尋關鍵字
 KEYWORDS = "房地產 OR 房市 OR 房價"
+
+# 3.新聞數量
 NEWS_LIMIT = 5
+# ==========================================
 
 def get_google_news():
     """從 Google News RSS 抓取新聞"""
@@ -30,7 +39,6 @@ def send_line_notify(news_list):
     token = os.environ.get("LINE_NOTIFY_TOKEN")
     
     if not token:
-        # 如果沒設定 Token，直接報錯讓程式變紅色
         raise ValueError("錯誤：找不到 LINE_NOTIFY_TOKEN，請檢查 GitHub Secrets 設定")
 
     today_str = datetime.date.today().strftime("%Y/%m/%d")
@@ -54,15 +62,14 @@ def send_line_notify(news_list):
     }
     payload = {"message": message}
     
-    # 2. 這裡拿掉了 try-except 保護網
-    # 如果網址有錯或連線失敗，程式會直接報錯 (亮紅燈)
     print("準備連線到 LINE API...")
-    response = requests.post("https://notify-api.line.me/api/notify", headers=headers, data=payload)
+    
+    # 3. 這裡改成使用上面的變數，這樣最安全
+    response = requests.post(LINE_API, headers=headers, data=payload)
     
     if response.status_code == 200:
         print("✅ 成功發送 LINE 通知！")
     else:
-        # 如果 LINE 拒絕 (例如 Token 錯)，也直接報錯
         raise Exception(f"發送失敗，狀態碼: {response.status_code}, 原因: {response.text}")
 
 if __name__ == "__main__":
