@@ -1,1 +1,78 @@
+import os
+import requests
+import feedparser
+import datetime
+from urllib.parse import quote
 
+# 設定關鍵字
+KEYWORDS = "房地產 OR 房市 OR 房價"
+NEWS_LIMIT = 5
+
+def get_google_news():
+    encoded_keywords = quote(KEYWORDS)
+    rss_url = f"https://news.google.com/rss/search?q={encoded_keywords}&hl=zh-TW&gl=TW&ceid=TW:zh-Hant"
+    
+    print(f"正在抓取新聞: {rss_url}")
+    feed = feedparser.parse(rss_url)
+    
+    news_list = []
+    for entry in feed.entries[:NEWS_LIMIT]:
+        news_list.append({
+            "title": entry.title,
+            "link": entry.link,
+            "published": entry.published
+        })
+    return news_list
+
+def send_line_notify(news_list):
+    token = os.environ.get("LINE_NOTIFY_TOKEN")
+    
+    if not token:
+        print("錯誤：找不到 LINE_NOTIFY_TOKEN")
+        return
+
+    today_str = datetime.date.today().strftime("%Y/%m/%d")
+    
+    message = f"\n🏠 【房市早報】 {today_str}\n"
+    message += "-" * 20 + "\n"
+    
+    if not news_list:
+        message += "今日沒有相關新聞。"
+    else:
+        for idx, news in enumerate(news_list, 1):
+            title = news['title']
+            link = news['link']
+            message += f"{idx}. {title}\n🔗 {link}\n\n"
+    
+    message += "-" * 20 + "\n祝你有美好的一天！"
+
+    headers = {
+        "Authorization": "Bearer " + token,
+        "Content-Type": "application/x-www-form-urlencoded"
+    }
+    payload = {"message": message}
+    
+    # 這裡是最關鍵的網址，我把它寫死在這裡，確保不會出錯
+    url = "https://notify-api.line.me/api/notify"
+    
+    try:
+        print(f"準備連線到: {url}")
+        response = requests.post(url, headers=headers, data=payload)
+        print(f"連線狀態碼: {response.status_code}")
+        
+        if response.status_code == 200:
+            print("✅ 成功發送 LINE 通知！")
+        else:
+            print(f"❌ 發送失敗: {response.text}")
+            # 故意讓它報錯，這樣 GitHub 才會顯示紅色叉叉
+            raise Exception("LINE API 回傳錯誤")
+            
+    except Exception as e:
+        print(f"連線發生致命錯誤: {e}")
+        raise e
+
+if __name__ == "__main__":
+    print("程式開始執行...")
+    news = get_google_news()
+    send_line_notify(news)
+    print("程式執行結束")
