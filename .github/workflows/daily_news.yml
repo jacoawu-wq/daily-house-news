@@ -20,6 +20,6 @@ jobs:
         pip install -r requirements.txt
     - name: Run bot
       env:
-        LINE_NOTIFY_TOKEN: ${{ secrets.LINE_NOTIFY_TOKEN }}
-      run: python news_bot.py
-
+        LINE_ACCESS_TOKEN: ${{ secrets.LINE_ACCESS_TOKEN }}
+    LINE_USER_ID: ${{ secrets.LINE_USER_ID }}
+4.  **或者直接全選貼上**：為了避免改錯，你可以直接**全選刪除**，貼上這份完整的：
