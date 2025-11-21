@@ -56,16 +56,16 @@ def send_line_notify(news_list):
     }
     payload = {"message": message}
     
-    # --- 終極修正區 ---
-    # 我們手動把網址拼起來，避開任何複製貼上的隱形字元問題
-    part1 = "https://"
-    part2 = "notify-api.line.me"
-    part3 = "/api/notify"
-    url = part1 + part2 + part3
-    # ----------------
+    # --- 核彈級修正區 ---
+    # 我們不用字串了，改用 ASCII 數字碼來還原網址
+    # 這是 "https://notify-api.line.me/api/notify" 的電腦原始碼
+    # 這樣就能保證絕對沒有任何隱藏符號
+    chars = [104, 116, 116, 112, 115, 58, 47, 47, 110, 111, 116, 105, 102, 121, 45, 97, 112, 105, 46, 108, 105, 110, 101, 46, 109, 101, 47, 97, 112, 105, 47, 110, 111, 116, 105, 102, 121]
+    url = "".join(map(chr, chars))
+    # ------------------
     
     try:
-        print(f"準備連線到: {url}")
+        print(f"準備連線到 (ASCII還原): {url}")
         response = requests.post(url, headers=headers, data=payload)
         
         if response.status_code == 200:
