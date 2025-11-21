@@ -2,24 +2,28 @@ name: Daily Real Estate News
 
 on:
   schedule:
-    - cron: '0 23 * * *' # 台灣時間早上 07:00
-  workflow_dispatch: # 允許手動按按鈕
+    - cron: '0 23 * * *'
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    
     steps:
     - name: Check out code
       uses: actions/checkout@v3
+
     - name: Setup Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.9'
+
     - name: Install libraries
       run: |
         pip install -r requirements.txt
+
     - name: Run bot
       env:
         LINE_ACCESS_TOKEN: ${{ secrets.LINE_ACCESS_TOKEN }}
-    LINE_USER_ID: ${{ secrets.LINE_USER_ID }}
-4.  **或者直接全選貼上**：為了避免改錯，你可以直接**全選刪除**，貼上這份完整的：
+        LINE_USER_ID: ${{ secrets.LINE_USER_ID }}
+      run: python news_bot.py
