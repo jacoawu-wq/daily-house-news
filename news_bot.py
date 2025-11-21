@@ -33,14 +33,16 @@ def get_google_news():
         
     return news_list
 
-def send_line_push(news_list):
-    """使用 Messaging API 推送訊息"""
-    # 從 GitHub Secrets 讀取兩把鑰匙
+def send_line_broadcast(news_list):
+    """
+    使用 Messaging API 的 'Broadcast' 功能
+    這會發送給「所有」加此機器人為好友的用戶
+    """
+    # 廣播只需要 Access Token，不需要 User ID
     access_token = os.environ.get("LINE_ACCESS_TOKEN")
-    user_id = os.environ.get("LINE_USER_ID")
     
-    if not access_token or not user_id:
-        print("❌ 錯誤：找不到 LINE_ACCESS_TOKEN 或 LINE_USER_ID，請檢查 GitHub Secrets")
+    if not access_token:
+        print("❌ 錯誤：找不到 LINE_ACCESS_TOKEN，請檢查 GitHub Secrets")
         return
 
     # 準備訊息內容
@@ -58,17 +60,16 @@ def send_line_push(news_list):
     
     text_content += "-" * 20 + "\n祝你有美好的一天！"
 
-    # Messaging API 的網址 (這是官方帳號專用的)
-    url = "https://api.line.me/v2/bot/message/push"
+    # 注意：網址變成了 /message/broadcast
+    url = "https://api.line.me/v2/bot/message/broadcast"
     
     headers = {
         "Authorization": f"Bearer {access_token}",
         "Content-Type": "application/json"
     }
     
-    # 這是 Messaging API 的格式
+    # 廣播模式不需要 "to" 欄位，它會自動發給所有人
     payload = {
-        "to": user_id,
         "messages": [
             {
                 "type": "text",
@@ -78,11 +79,11 @@ def send_line_push(news_list):
     }
     
     try:
-        print("準備使用 Messaging API 推送...")
+        print("準備向所有好友廣播新聞...")
         response = requests.post(url, headers=headers, json=payload)
         
         if response.status_code == 200:
-            print("✅ 成功發送 LINE 通知！(Messaging API)")
+            print("✅ 成功廣播 LINE 通知！")
         else:
             print(f"❌ 發送失敗: {response.status_code}")
             print(f"回應內容: {response.text}")
@@ -95,5 +96,6 @@ def send_line_push(news_list):
 if __name__ == "__main__":
     print("程式開始執行...")
     news = get_google_news()
-    send_line_push(news)
+    # 執行廣播函式
+    send_line_broadcast(news)
     print("程式執行結束")
