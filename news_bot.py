@@ -37,6 +37,7 @@ def get_google_news():
     if feed.entries:
         for entry in feed.entries[:NEWS_LIMIT]:
             title = entry.title
+            link = entry.link
             
             # 自動標記建案/廣編
             if any(ad_word in title for ad_word in AD_KEYWORDS):
@@ -44,7 +45,7 @@ def get_google_news():
             
             news_list.append({
                 "title": title,
-                "link": entry.link,
+                "link": link,
                 "published": entry.published
             })
     else:
@@ -69,6 +70,9 @@ def send_line_broadcast(news_list):
     
     # 1. 新聞列表元件
     news_components = []
+    
+    valid_news_count = 0
+    
     if not news_list:
         news_components.append({
             "type": "text",
@@ -76,10 +80,18 @@ def send_line_broadcast(news_list):
             "color": "#aaaaaa"
         })
     else:
-        for idx, news in enumerate(news_list, 1):
+        for news in news_list:
+            # --- 關鍵修正：檢查網址長度 ---
+            # LINE 限制網址最多 1000 字，超過會導致發送失敗 (Error 400)
+            if len(news['link']) > 1000:
+                print(f"⚠️ 跳過一則新聞，因為網址太長 ({len(news['link'])}字): {news['title']}")
+                continue
+            # ---------------------------
+            
+            valid_news_count += 1
             news_components.append({
                 "type": "text",
-                "text": f"{idx}. {news['title']}",
+                "text": f"{valid_news_count}. {news['title']}",
                 "wrap": True,        # 允許換行
                 "color": "#0066cc",  # 設定為連結藍色
                 "decoration": "underline", # 加上底線，讓它看起來像連結
@@ -91,6 +103,14 @@ def send_line_broadcast(news_list):
                 },
                 "margin": "md"       # 增加一點間距
             })
+
+    # 如果所有新聞都因為網址太長被過濾掉
+    if not news_components:
+        news_components.append({
+            "type": "text",
+            "text": "今日新聞網址皆過長，無法顯示。",
+            "color": "#aaaaaa"
+        })
 
     # 2. 組合完整的 Bubble Container
     bubble_content = {
