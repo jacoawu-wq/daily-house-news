@@ -6,15 +6,29 @@ import json
 from urllib.parse import quote
 
 # ==========================================
-# 設定區
+# 設定區 (進階篩選版)
 # ==========================================
-KEYWORDS = "房地產 OR 房市 OR 房價"
-NEWS_LIMIT = 5
+
+# 1. 定義主題：包含房市、建案、預售屋、重劃區
+TOPICS = "房地產 OR 房市 OR 房價 OR 建案 OR 預售屋 OR 重劃區"
+
+# 2. 定義地區：鎖定六都
+LOCATIONS = "台北 OR 新北 OR 桃園 OR 台中 OR 台南 OR 高雄"
+
+# 3. 組合關鍵字：(主題) AND (地區) -> 確保新聞同時包含兩者
+KEYWORDS = f"({TOPICS}) AND ({LOCATIONS})"
+
+# 4. 新聞數量：增加到 10 則
+NEWS_LIMIT = 10
+
+# 5. 廣告/建案 識別關鍵字
+AD_KEYWORDS = ["建案", "預售", "重劃區", "開賣", "熱銷", "總價", "萬起", "登場", "公開"]
 # ==========================================
 
 def get_google_news():
     """從 Google News RSS 抓取新聞"""
     encoded_keywords = quote(KEYWORDS)
+    # 使用 search 模式搜尋
     rss_url = f"https://news.google.com/rss/search?q={encoded_keywords}&hl=zh-TW&gl=TW&ceid=TW:zh-Hant"
     
     print(f"正在抓取新聞: {rss_url}")
@@ -23,8 +37,16 @@ def get_google_news():
     news_list = []
     if feed.entries:
         for entry in feed.entries[:NEWS_LIMIT]:
+            title = entry.title
+            
+            # --- 小功能：自動標記建案/廣編 ---
+            # 如果標題包含廣告關鍵字，就在後面加上標籤
+            if any(ad_word in title for ad_word in AD_KEYWORDS):
+                title = f"{title} (建案/廣編)"
+            # -----------------------------
+            
             news_list.append({
-                "title": entry.title,
+                "title": title,
                 "link": entry.link,
                 "published": entry.published
             })
@@ -35,10 +57,8 @@ def get_google_news():
 
 def send_line_broadcast(news_list):
     """
-    使用 Messaging API 的 'Broadcast' 功能
-    這會發送給「所有」加此機器人為好友的用戶
+    使用 Messaging API 的 'Broadcast' 功能 (廣播給所有人)
     """
-    # 廣播只需要 Access Token，不需要 User ID
     access_token = os.environ.get("LINE_ACCESS_TOKEN")
     
     if not access_token:
@@ -47,7 +67,7 @@ def send_line_broadcast(news_list):
 
     # 準備訊息內容
     today_str = datetime.date.today().strftime("%Y/%m/%d")
-    text_content = f"🏠 【房市早報】 {today_str}\n"
+    text_content = f"🏠 【六都房市/建案快訊】 {today_str}\n"
     text_content += "-" * 20 + "\n"
     
     if not news_list:
@@ -58,9 +78,8 @@ def send_line_broadcast(news_list):
             link = news['link']
             text_content += f"{idx}. {title}\n🔗 {link}\n\n"
     
-    text_content += "-" * 20 + "\n祝你有美好的一天！"
+    text_content += "-" * 20 + "\n祝您投資順利！"
 
-    # 注意：網址變成了 /message/broadcast
     url = "https://api.line.me/v2/bot/message/broadcast"
     
     headers = {
@@ -68,7 +87,6 @@ def send_line_broadcast(news_list):
         "Content-Type": "application/json"
     }
     
-    # 廣播模式不需要 "to" 欄位，它會自動發給所有人
     payload = {
         "messages": [
             {
@@ -96,6 +114,5 @@ def send_line_broadcast(news_list):
 if __name__ == "__main__":
     print("程式開始執行...")
     news = get_google_news()
-    # 執行廣播函式
     send_line_broadcast(news)
     print("程式執行結束")
