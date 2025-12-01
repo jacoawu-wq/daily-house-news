@@ -2,7 +2,11 @@ name: Daily Real Estate News
 
 on:
   schedule:
-    - cron: '0 23 * * *'
+    # 台灣時間 07:00 (Mon-Fri) = UTC 時間 23:00 (Sun-Thu)
+    # 0=週日, 1=週一, ..., 4=週四
+    - cron: '0 23 * * 0-4'
+  
+  # 這一行是保留手動測試按鈕 (不管星期幾都能按)
   workflow_dispatch:
 
 jobs:
